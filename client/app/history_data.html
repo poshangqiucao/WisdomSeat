@@ -1,0 +1,44 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title></title>
+		<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
+		<link href="css/mui.css" rel="stylesheet" />
+		<!-- <link href="css/mui.min.css" /> -->
+		<link href="css/mui.picker.min.css" rel="stylesheet"/>
+		<link href="css/history_data.css" rel="stylesheet" />
+		<script src="js/echarts.min.js"></script>
+		<script src="js/tools.js"></script>
+	</head>
+
+	<body>
+		<script src="js/mui.js"></script>
+		<!-- <script src="js/mui.min.js"></script> -->
+		<script src="js/mui.picker.min.js"></script>
+		<script type="text/javascript">
+			mui.init()
+		</script>
+		
+		<div class="mui-content">
+			<header class="mui-bar mui-bar-nav">
+				<a class="mui-action-back mui-icon mui-icon-left-nav mui-pull-left"></a>
+				<h1 class="mui-title">历史数据</h1>
+			</header>
+			
+			<div id="pie_num" style="width: auto;height: 12.5rem"></div>
+			<div id="month_status" style="width: auto;height: 12.5rem"></div>
+			<div id="status_time" style="width: auto;height: 12.5rem"></div>
+			
+			<div class="mui-content-padded">
+				<button id="select_time" class="mui-btn mui-btn-block mui-btn-success">打开时间选择器</button>
+			</div>
+			<div class="mui-content-padded">
+				<button id="export_data" class="mui-btn mui-btn-block mui-btn-success">导出数据</button>	
+			</div>
+		</div>
+		<script src="js/history_data.js"></script>
+		<script src="js/app.js"></script>
+	</body>
+
+</html>

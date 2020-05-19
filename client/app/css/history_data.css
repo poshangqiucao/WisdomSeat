@@ -1,0 +1,54 @@
+*{
+	margin: 0;
+	padding: 0;
+}
+#select_time{
+	margin-top: 3.125rem;
+}
+#export_data{
+	margin-top: 0.625rem;
+}
+#pie_num{
+	/* border: 1px solid red; */
+	position: relative;
+	top: 3.75rem;
+}
+#status_time{
+	/* border: 1px solid red; */
+	position: relative;
+	top: 3.75rem;
+}
+#month_status{
+	/* border: 1px solid red; */
+	position: relative;
+	top: 3.75rem;
+}
+
+html,
+body,
+.mui-content {
+	height: 0px;
+	margin: 0px;
+	background-color: #efeff4;
+}
+h5.mui-content-padded {
+	margin-left: 3px;
+	margin-top: 20px !important;
+}
+h5.mui-content-padded:first-child {
+	margin-top: 12px !important;
+}
+.mui-btn {
+	font-size: 16px;
+	padding: 8px;
+	margin: 3px;
+}
+.ui-alert {
+	text-align: center;
+	padding: 20px 10px;
+	font-size: 16px;
+}
+* {
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+}

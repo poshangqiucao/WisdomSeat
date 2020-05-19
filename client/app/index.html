@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
+    <title></title>
+    <script src="js/mui.min.js"></script>
+	<script src="js/mqtt.min.js"></script>
+	<script src="js/moment.js"></script>
+	<script src="js/echarts.min.js"></script>
+	<script src="js/echarts-gl.js"></script>
+	<script src="js/tools.js"></script>
+    <link href="css/mui.min.css" rel="stylesheet"/>
+	<link href="css/index.css" rel="stylesheet"/>
+    <script type="text/javascript" charset="utf-8">
+      	mui.init();
+		mui.plusReady(function(){
+		    //console.log(plus.storage.getItem("username"))
+		});
+    </script>
+</head>
+<body>
+	
+	<div class="mui-content">
+		<div class="mui-slider">
+		  <div class="mui-slider-group mui-slider-loop">
+		    <!--支持循环，需要重复图片节点-->
+		    <div class="mui-slider-item mui-slider-item-duplicate"><a href="#"><img src="img/4.jpg" /></a></div>
+		    <div class="mui-slider-item"><a href="#"><img src="img/1.jpg" /></a></div>
+		    <div class="mui-slider-item"><a href="#"><img src="img/2.jpg" /></a></div>
+		    <div class="mui-slider-item"><a href="#"><img src="img/3.jpg" /></a></div>
+		    <div class="mui-slider-item"><a href="#"><img src="img/4.jpg" /></a></div>
+		    <!--支持循环，需要重复图片节点-->
+		    <div class="mui-slider-item mui-slider-item-duplicate"><a href="#"><img src="img/1.jpg" /></a></div>
+		  </div>
+		</div>
+		<ul class="mui-table-view">
+		    <li class="mui-table-view-cell">状态
+				<span class="mui-badge mui-badge-primary" id="status">未知</span>
+			</li>
+			<li class="mui-table-view-cell">上次离床时间
+				<span class="mui-badge mui-badge-primary" id="last_false">未知</span>
+			</li>
+			<li class="mui-table-view-cell">上次在床时间
+				<span class="mui-badge mui-badge-primary" id="last_true">未知</span>
+			</li>
+			<li class="mui-table-view-cell">持续时间
+				<span class="mui-badge mui-badge-primary" id="duration">未知</span>
+			</li>
+			<li class="mui-table-view-cell">今日起卧次数
+				<span class="mui-badge mui-badge-primary" id="status_num">未知</span>
+			</li>
+		</ul>
+		
+		<div id="line_chart" style="width: auto;height: 12.5rem;"></div>
+		
+		<nav class="mui-bar mui-bar-tab">
+			<a class="mui-tab-item">
+				<span class="mui-icon mui-icon-paperplane" id="history_data_icon"></span>
+				<span class="mui-tab-label" id="history_data_span">历史数据</span>
+			</a>
+			<a class="mui-tab-item">
+				<span class="mui-icon mui-icon-contact" id="my_icon"></span>
+				<span class="mui-tab-label" id="my_span">设置</span>
+			</a>
+		</nav>
+	</div>
+	<script>
+		//获得slider插件对象
+		var gallery = mui('.mui-slider');
+		gallery.slider({
+		  interval:3000//自动轮播周期，若为0则不自动播放，默认为0；
+		});
+		mui('.mui-bar-transparent').transparent({
+		    top: 0,
+		    offset: 150,
+		    duration: 16,
+		    scrollby: document.querySelector('.mui-scroll-wrapper')
+		})
+	</script>
+	<script>
+		mui.get('http://www.cgblogs.top:5000/get_status/api/v1.0/today_status',function(data){
+				if(data["status"][0][2] == "False"){
+					document.getElementById("status").innerText = "离床"
+				}else{
+					document.getElementById("status").innerText = "在床"
+				}
+			},'json'
+		);	
+		mui.get('http://www.cgblogs.top:5000/get_status/api/v1.0/last_status/1',function(data){
+				document.getElementById("last_true").innerText = gmt_to_beijing(GMTToStr(data["status"][1]))
+			},'json'
+		);
+		mui.get('http://www.cgblogs.top:5000/get_status/api/v1.0/last_status/0',function(data){
+				document.getElementById("last_false").innerText =gmt_to_beijing(GMTToStr(data["status"][1]))
+			},'json'
+		);
+		
+	</script>
+	
+	<script>
+	var client = mqtt.connect("ws://www.cgblogs.top:8083/mqtt") // you add a ws:// url here
+	client.subscribe(["/weight/1","/change_status","/status"])
+	
+	var x_data = []
+	var y_data = []
+	var index = 1
+	var myChart = echarts.init(document.getElementById('line_chart'));
+	option = {
+		title: {
+				text: '原始数据流',
+				subtext: '实时流',
+				left: 'center'
+			},
+	    xAxis: {
+	        type: 'category',
+	        boundaryGap: false,
+	        data: []
+	    },
+	    yAxis: {
+	        type: 'value'
+	    },
+	    series: [{
+	        data: [],
+	        type: 'line',
+			legendHoverLink:true,
+	        //areaStyle: {}
+	    }]
+	};
+    client.on("message", function (topic, payload) {
+		if (topic == "/weight/1"){
+			x_data.push(index)	
+			index++
+			y_data.push(JSON.parse(payload.toString())["weight"]/10000)
+			if(x_data.length==1000){
+				x_data = []
+				y_data = []
+				index = 1
+			}
+			option.xAxis.data = x_data
+			option.series[0].data = y_data
+			myChart.setOption(option);
+		}else if(topic == "/change_status"){
+			
+			let right_time = Date.parse(new Date())/1000
+			let left_time =  right_time - 24*60*60
+			mui.get('http://www.cgblogs.top:5000/get_status/api/v1.0/duration_time',{left_time:format_timestamp(left_time*1000),right_time:format_timestamp(right_time*1000)},function(data){
+				let true_time = get_true_time(data["status"])
+				let user_time = parseInt(plus.storage.getItem("sleep_time"))
+				let val = true_time - user_time
+				if(val > 0){
+					plus.push.createMessage("过去24小时在床时间多余设定值"+secondsFormat(Math.abs(val)))
+				}else if(val < 0){
+					plus.push.createMessage("过去24小时在床时间少于设定值"+secondsFormat(Math.abs(val)))
+				}else{
+					plus.push.createMessage("过去24小时在床时间适中")
+				}
+			})
+			
+			let now_list = new Date().toString().split(" ")[4].split(":")
+			let start_time = plus.storage.getItem("start_time")
+			let end_time = plus.storage.getItem("end_time")
+			if(start_time != null && end_time != null){
+				if(payload.toString() == "False"){
+					if(time_to_second(now_list[0]+":"+now_list[1])<time_to_second(end_time)){
+						var content = "老人未在设定时间离床"
+						plus.push.createMessage(content)
+					}
+				}else if(payload.toString() == "True"){
+					if(time_to_second(now_list[0]+":"+now_list[1])<time_to_second(start_time)){
+						var content = "老人未在设定时间处于在床状态"
+						plus.push.createMessage(content)
+					}
+				}
+			}
+			
+			if(plus.storage.getItem("status_btn") != null && plus.storage.getItem("status_btn") == "true"){
+				if(payload.toString() == "False"){
+					var content = "老人在 "+new Date().toLocaleString()+" 离床"
+					plus.push.createMessage(content)
+				}else if(payload.toString() == "True"){
+					var content = "老人于 "+new Date().toLocaleString()+" 在床休息"
+					plus.push.createMessage(content)
+				}
+			}
+			
+			mui.get('http://www.cgblogs.top:5000/get_status/api/v1.0/last_status/1',function(data){
+					document.getElementById("last_true").innerText = gmt_to_beijing(GMTToStr(data["status"][1]))
+				},'json'
+			);
+			
+			mui.get('http://www.cgblogs.top:5000/get_status/api/v1.0/last_status/0',function(data){
+					document.getElementById("last_false").innerText = gmt_to_beijing(GMTToStr(data["status"][1]))
+				},'json'
+			);
+			if(payload.toString() == "False"){
+				document.getElementById("status").innerText = "离床"
+			}else if(payload.toString() == "True"){
+				document.getElementById("status").innerText = "在床"
+			}
+		}else if(topic == "/status"){
+			mui.get('http://www.cgblogs.top:5000/get_status/api/v1.0/today_status',function(data){
+					var now = parseInt(new Date().getTime()/1000);
+					var status_timestamp = Date.parse(GMTToStr(data["status"][0][1]))/1000+8*60*60;
+					var val = now - status_timestamp;
+					document.getElementById("duration").innerText = secondsFormat(val)
+					document.getElementById("status_num").innerText = data["status"].length+"次"
+				},'json'
+			);	
+		}
+		
+	})
+
+	//client.publish("mqtt/demo", "hello world!")
+	</script>
+	<script>
+		document.getElementById('history_data_icon').addEventListener('tap', function() {
+		  //打开历史数据页面
+		  mui.openWindow({
+		    url: 'history_data.html', 
+		    id:'history_data.html'
+		  });
+		});
+		document.getElementById('history_data_span').addEventListener('tap', function() {
+		  //打开我的页面
+		  mui.openWindow({
+		    url: 'history_data.html', 
+		    id:'history_data.html'
+		  });
+		});
+		
+		document.getElementById('my_icon').addEventListener('tap', function() {
+		  //打开我的页面
+		  mui.openWindow({
+		    url: 'setting.html', 
+		    id:'setting.html'
+		  });
+		});
+		document.getElementById('my_span').addEventListener('tap', function() {
+		  //打开历史数据页面
+		  mui.openWindow({
+		    url: 'setting.html', 
+		    id:'setting.html'
+		  });
+		});
+	</script>
+	<script src="js/app.js"></script>
+</body>
+</html>
